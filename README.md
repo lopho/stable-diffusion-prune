@@ -32,7 +32,7 @@ python3 prune.py -e sd-v1-4-full-ema.ckpt pruned.ckpt
 
 Convert to `torch.float16`, remove VAE and CLIP model weights.
 ```sh
-python3 prune.py -pca --no-vae
+python3 prune.py -pca sd-v1-4-full-ema.ckpt pruned.ckpt
 ```
 
 ## Dependencies
