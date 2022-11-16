@@ -1,30 +1,29 @@
 
 def prune(
         checkpoint,
-        clip = False,
-        ema = False,
         fp16 = False,
+        ema = False,
+        clip = True,
+        vae = True,
 ):
     sd = checkpoint['state_dict']
     sd_pruned = dict()
-    fp = lambda x: x.half() if fp16 else x
     for k in sd:
-        if k.startswith('model.diffusion_model.'):
-            if ema:
-                k_ema = 'model_ema.' + k[6:].replace('.', '')
-                if k_ema in sd:
-                    k = k_ema
-            sd_pruned[k] = fp(sd[k])
-        elif k.startswith('first_stage_model.'):
-            sd_pruned[k] = fp(sd[k])
-        elif clip and k.startswith('cond_stage_model.'):
-            sd_pruned[k] = fp(sd[k])
+        cp = k.startswith('model.diffusion_model.')
+        if cp and ema:
+            k_ema = 'model_ema.' + k[6:].replace('.', '')
+            if k_ema in sd:
+                k = k_ema
+        cp = cp or (vae and k.startswith('first_stage_model.'))
+        cp = cp or (clip and k.startswith('cond_stage_model.'))
+        if cp:
+            sd_pruned[k] = sd[k].half() if fp16 else sd[k]
     return { 'state_dict': sd_pruned }
 
 def main(args):
     from argparse import ArgumentParser
     from functools import partial
-    parser: ArgumentParser = ArgumentParser(
+    parser = ArgumentParser(
             description = "Prune a stable diffusion checkpoint"
     )
     parser.add_argument(
@@ -40,21 +39,26 @@ def main(args):
     parser.add_argument(
         '-p', '--fp16',
         action = 'store_true',
-        help = "convert checkpoint to float16"
-    )
-    parser.add_argument(
-        '-c', '--clip',
-        action = 'store_true',
-        help = "include the CLIP model in the checkpoint"
+        help = "convert to float16"
     )
     parser.add_argument(
         '-e', '--ema',
         action = 'store_true',
-        help = "use ema weights"
+        help = "use EMA for weights"
+    )
+    parser.add_argument(
+        '-c', '--no-clip',
+        action = 'store_true',
+        help = "strip CLIP weights"
+    )
+    parser.add_argument(
+        '-a', '--no-vae',
+        action = 'store_true',
+        help = "strip VAE weights"
     )
     def error(self, message):
         import sys
-        sys.stderr.write(f'error: {message}\n')
+        sys.stderr.write(f"error: {message}\n")
         self.print_help()
         self.exit()
     parser.error = partial(error, parser) # type: ignore
@@ -70,9 +74,10 @@ def main(args):
                     return object
     save(prune(
             load(args.input, pickle_module = pickle), # type: ignore
-            clip = args.clip,
+            fp16 = args.fp16,
             ema = args.ema,
-            fp16 = args.fp16
+            clip = not args.no_clip,
+            vae = not args.no_vae,
     ), args.output)
 
 if __name__ == '__main__':

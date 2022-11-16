@@ -3,30 +3,36 @@ Prune stable diffusion checkpoints.
 
 ## Usage
 ```
-usage: prune.py [-h] [-p] [-c] [-e] input output
+usage: prune.py [-h] [-p] [-e] [-c] [-a] input output
 
 Prune a stable diffusion checkpoint
 
 positional arguments:
-  input       input checkpoint
-  output      output checkpoint
+  input          input checkpoint
+  output         output checkpoint
 
 optional arguments:
-  -h, --help  show this help message and exit
-  -p, --fp16  convert checkpoint to float16
-  -c, --clip  include the CLIP model in the checkpoint
-  -e, --ema   use ema weights
+  -h, --help     show this help message and exit
+  -p, --fp16     convert to float16
+  -e, --ema      use EMA for weights
+  -c, --no-clip  strip CLIP weights
+  -a, --no-vae   strip VAE weights
 ```
 
 ## Example
 Convert to `torch.float16`, use ema weights and remove CLIP model weights.
 ```sh
-python3 prune.py -pe sd-v1-4-full-ema.ckpt pruned.ckpt
+python3 prune.py -pec sd-v1-4-full-ema.ckpt pruned.ckpt
 ```
 
-Keep precision the same, use ema weights and include CLIP model weights.
+Keep precision the same and use ema weights.
 ```sh
-python3 prune.py -ce sd-v1-4-full-ema.ckpt pruned.ckpt
+python3 prune.py -e sd-v1-4-full-ema.ckpt pruned.ckpt
+```
+
+Convert to `torch.float16`, remove VAE and CLIP model weights.
+```sh
+python3 prune.py -pca --no-vae
 ```
 
 ## Dependencies
