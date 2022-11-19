@@ -1,4 +1,4 @@
-
+# (c) 2022 lopho
 def prune(
         checkpoint,
         fp16 = False,
@@ -13,11 +13,12 @@ def prune(
         cp = cp or (vae and k.startswith('first_stage_model.'))
         cp = cp or (clip and k.startswith('cond_stage_model.'))
         if cp:
+            k_in = k
             if ema:
                 k_ema = 'model_ema.' + k[6:].replace('.', '')
                 if k_ema in sd:
-                    k = k_ema
-            sd_pruned[k] = sd[k].half() if fp16 else sd[k]
+                    k_in = k_ema
+            sd_pruned[k] = sd[k_in].half() if fp16 else sd[k_in]
     return { 'state_dict': sd_pruned }
 
 def main(args):
