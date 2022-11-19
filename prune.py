@@ -10,13 +10,13 @@ def prune(
     sd_pruned = dict()
     for k in sd:
         cp = k.startswith('model.diffusion_model.')
-        if cp and ema:
-            k_ema = 'model_ema.' + k[6:].replace('.', '')
-            if k_ema in sd:
-                k = k_ema
         cp = cp or (vae and k.startswith('first_stage_model.'))
         cp = cp or (clip and k.startswith('cond_stage_model.'))
         if cp:
+            if ema:
+                k_ema = 'model_ema.' + k[6:].replace('.', '')
+                if k_ema in sd:
+                    k = k_ema
             sd_pruned[k] = sd[k].half() if fp16 else sd[k]
     return { 'state_dict': sd_pruned }
 
