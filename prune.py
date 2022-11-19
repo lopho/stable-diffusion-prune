@@ -63,15 +63,15 @@ def main(args):
         self.exit()
     parser.error = partial(error, parser) # type: ignore
     args = parser.parse_args(args)
-    from torch import save, load
-    import pickle as python_pickle
     class pickle:
+        import pickle as python_pickle
         class Unpickler(python_pickle.Unpickler):
             def find_class(self, module, name):
                 try:
                     return super().find_class(module, name)
                 except:
                     return object
+    from torch import save, load
     save(prune(
             load(args.input, pickle_module = pickle), # type: ignore
             fp16 = args.fp16,
