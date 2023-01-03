@@ -22,7 +22,9 @@ def prune(
         depth = True,
         unet = True,
 ):
-    sd = checkpoint['state_dict']
+    sd = checkpoint
+    if 'state_dict' in sd:
+        sd = sd['state_dict']
     sd_pruned = dict()
     for k in sd:
         cp = unet and k.startswith('model.diffusion_model.')
