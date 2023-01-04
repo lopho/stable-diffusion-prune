@@ -23,8 +23,10 @@ def prune(
         unet = True,
 ):
     sd = checkpoint
+    nested_sd = False
     if 'state_dict' in sd:
         sd = sd['state_dict']
+        nested_sd = True
     sd_pruned = dict()
     for k in sd:
         cp = unet and k.startswith('model.diffusion_model.')
@@ -38,7 +40,10 @@ def prune(
                 if k_ema in sd:
                     k_in = k_ema
             sd_pruned[k] = sd[k_in].half() if fp16 else sd[k_in]
-    return { 'state_dict': sd_pruned }
+    if nested_sd:
+        return { 'state_dict': sd_pruned }
+    else:
+        return sd_pruned
 
 def main(args):
     from argparse import ArgumentParser
