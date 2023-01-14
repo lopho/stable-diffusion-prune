@@ -12,15 +12,21 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+import sys, os
+from argparse import ArgumentParser
+from functools import partial
+
+from torch import save, load
+from safetensors.torch import save_file, load_file
 
 def prune(
-        checkpoint,
-        fp16 = False,
-        ema = False,
-        clip = True,
-        vae = True,
-        depth = True,
-        unet = True,
+    checkpoint,
+    fp16 = False,
+    ema = False,
+    clip = True,
+    vae = True,
+    depth = True,
+    unet = True,
 ):
     sd = checkpoint
     nested_sd = False
@@ -28,7 +34,7 @@ def prune(
         sd = sd['state_dict']
         nested_sd = True
     sd_pruned = dict()
-    for k in sd:
+    for k in sd.keys():
         cp = unet and k.startswith('model.diffusion_model.')
         cp = cp or (depth and k.startswith('depth_model.'))
         cp = cp or (vae and k.startswith('first_stage_model.'))
@@ -46,53 +52,52 @@ def prune(
         return sd_pruned
 
 def main(args):
-    from argparse import ArgumentParser
-    from functools import partial
     parser = ArgumentParser(
-            description = "Prune a stable diffusion checkpoint",
-            epilog = "Copyright (C) 2022  Lopho <contact@lopho.org> | \
-                    Licensed under the AGPLv3 <https://www.gnu.org/licenses/>"
+        description = "Prune a stable diffusion checkpoint",
+        epilog = "Copyright (C) 2022  Lopho <contact@lopho.org> | \
+                Licensed under the AGPLv3 <https://www.gnu.org/licenses/>"
     )
     parser.add_argument(
-            'input',
-            type = str,
-            help = "input checkpoint"
+        'input',
+        type = str,
+        help = "input checkpoint"
     )
     parser.add_argument(
-            'output',
-            type = str,
-            help = "output checkpoint"
+        'output',
+        type = str,
+        help = "output checkpoint"
     )
     parser.add_argument(
-            '-p', '--fp16',
-            action = 'store_true',
-            help = "convert to float16"
+        '-p', '--fp16',
+        action = 'store_true',
+        help = "convert to float16"
     )
     parser.add_argument(
-            '-e', '--ema',
-            action = 'store_true',
-            help = "use EMA for weights"
+        '-e', '--ema',
+        action = 'store_true',
+        help = "use EMA for weights"
     )
     parser.add_argument(
-            '-c', '--no-clip',
-            action = 'store_true',
-            help = "strip CLIP weights"
+        '-c', '--no-clip',
+        action = 'store_true',
+        help = "strip CLIP weights"
     )
     parser.add_argument(
-            '-a', '--no-vae',
-            action = 'store_true',
-            help = "strip VAE weights"
+        '-a', '--no-vae',
+        action = 'store_true',
+        help = "strip VAE weights"
     )
     parser.add_argument(
-            '-d', '--no-depth',
-            action = 'store_true',
-            help = "strip depth model weights"
+        '-d', '--no-depth',
+        action = 'store_true',
+        help = "strip depth model weights"
     )
     parser.add_argument(
-            '-u', '--no-unet',
-            action = 'store_true',
-            help = "strip UNet weights"
+        '-u', '--no-unet',
+        action = 'store_true',
+        help = "strip UNet weights"
     )
+    
     def error(self, message):
         import sys
         sys.stderr.write(f"error: {message}\n")
@@ -100,6 +105,11 @@ def main(args):
         self.exit()
     parser.error = partial(error, parser) # type: ignore
     args = parser.parse_args(args)
+    
+    model_path = args.input
+    basename = os.path.basename(model_path)
+    root, ext = os.path.splitext(basename)
+    
     class torch_pickle:
         import pickle as python_pickle
         class Unpickler(python_pickle.Unpickler):
@@ -108,18 +118,32 @@ def main(args):
                     return super().find_class(module, name)
                 except:
                     return None
-    from torch import save, load
-    save(prune(
-            load(args.input, pickle_module = torch_pickle), # type: ignore
-            fp16 = args.fp16,
-            ema = args.ema,
-            clip = not args.no_clip,
-            vae = not args.no_vae,
-            depth = not args.no_depth,
-            unet = not args.no_unet
-    ), args.output)
+                
+    weights = dict()
+    if ext.lower() == '.safetensors':
+        weights = load_file(model_path)
+    else:
+        weights = load(model_path, pickle_module=torch_pickle) # type: ignore
+    
+    weights_pruned = prune(
+        weights,
+        fp16 = args.fp16,
+        ema = args.ema,
+        clip = not args.no_clip,
+        vae = not args.no_vae,
+        depth = not args.no_depth,
+        unet = not args.no_unet
+    )
+    
+    # check output extension
+    output_path = args.output
+    oext = os.path.splitext(output_path)[1].lower()
+    
+    if oext == '.safetensors':
+        save_file(weights_pruned, output_path)
+    else:
+        save(weights_pruned, output_path)
 
 if __name__ == '__main__':
-    import sys
     main(sys.argv[1:])
 

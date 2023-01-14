@@ -1,0 +1,9 @@
+# venv
+/venv/
+
+# models
+*.ckpt
+*.safetensors
+
+# local files
+/dev/
