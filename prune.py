@@ -16,6 +16,7 @@ import sys, os
 from argparse import ArgumentParser
 from functools import partial
 
+import pickle as python_pickle
 from torch import save, load
 from safetensors.torch import save_file, load_file
 
@@ -99,7 +100,6 @@ def main(args):
     )
     
     def error(self, message):
-        import sys
         sys.stderr.write(f"error: {message}\n")
         self.print_help()
         self.exit()
@@ -111,7 +111,6 @@ def main(args):
     root, ext = os.path.splitext(basename)
     
     class torch_pickle:
-        import pickle as python_pickle
         class Unpickler(python_pickle.Unpickler):
             def find_class(self, module, name):
                 try:
