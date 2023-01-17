@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+
 def prune(
         checkpoint,
         fp16 = False,
@@ -46,6 +47,7 @@ def prune(
         return sd_pruned
 
 def main(args):
+    import os
     from argparse import ArgumentParser
     from functools import partial
     parser = ArgumentParser(
@@ -100,24 +102,34 @@ def main(args):
         self.exit()
     parser.error = partial(error, parser) # type: ignore
     args = parser.parse_args(args)
-    class torch_pickle:
+    is_safetensors = os.path.splitext(args.input)[1].lower() == '.safetensors'
+    if is_safetensors:
+        from safetensors.torch import load_file, save_file
+        input_sd = load_file(args.input)
+    else:
+        from torch import load, save
         import pickle as python_pickle
-        class Unpickler(python_pickle.Unpickler):
-            def find_class(self, module, name):
-                try:
-                    return super().find_class(module, name)
-                except:
-                    return None
-    from torch import save, load
-    save(prune(
-            load(args.input, pickle_module = torch_pickle), # type: ignore
+        class torch_pickle:
+            class Unpickler(python_pickle.Unpickler):
+                def find_class(self, module, name):
+                    try:
+                        return super().find_class(module, name)
+                    except:
+                        return None
+        input_sd = load(args.input, pickle_module = torch_pickle) # type: ignore
+    pruned = prune(
+            input_sd,
             fp16 = args.fp16,
             ema = args.ema,
             clip = not args.no_clip,
             vae = not args.no_vae,
             depth = not args.no_depth,
             unet = not args.no_unet
-    ), args.output)
+    if is_safetensors:
+        save_file(pruned, args.output)
+    else:
+        save(pruned, args.output)
+
 
 if __name__ == '__main__':
     import sys
