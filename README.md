@@ -42,6 +42,8 @@ python3 prune.py -pca sd-v1-4-full-ema.ckpt pruned.ckpt
 ```
 numpy
 torch!=1.13.0
+# optional
+safetensors
 ```
 Note that `torch==1.13.0` has a bug in the `torch.load` function that forces you to install `pytorch_lightning` if you want to load stable diffusion checkpoints that include `pytorch_lightning` callbacks. (https://github.com/pytorch/pytorch/issues/88438)
 
@@ -50,5 +52,7 @@ It should be fixed in the next release of torch 1.13.1, 1.14.0-dev or 2.0.0.
 ### Stable diffusion v2
 ```
 torch
+# optional
+safetensors
 ```
 
