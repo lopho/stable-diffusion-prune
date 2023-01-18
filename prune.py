@@ -125,6 +125,7 @@ def main(args):
             vae = not args.no_vae,
             depth = not args.no_depth,
             unet = not args.no_unet
+    )
     if is_safetensors:
         save_file(pruned, args.output)
     else:
