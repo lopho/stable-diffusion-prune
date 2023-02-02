@@ -21,7 +21,17 @@ optional arguments:
   -u, --no-unet   strip UNet weights
 ```
 
-## Example
+## Examples
+Strip unused weights and EMA, keep everything else as is.
+```sh
+python3 prune.py sd-v1-4-full-ema.ckpt pruned.ckpt
+```
+
+Convert to `torch.float16`, use ema weights.
+```sh
+python3 prune.py -pe sd-v1-4-full-ema.ckpt pruned.ckpt
+```
+
 Convert to `torch.float16`, use ema weights and remove CLIP model weights.
 ```sh
 python3 prune.py -pec sd-v1-4-full-ema.ckpt pruned.ckpt
