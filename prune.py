@@ -116,7 +116,7 @@ def main(args):
                         return super().find_class(module, name)
                     except:
                         return None
-        input_sd = load(args.input, pickle_module = torch_pickle) # type: ignore
+        input_sd = load(args.input, pickle_module = torch_pickle, map_location = 'cpu') # type: ignore
     pruned = prune(
             input_sd,
             fp16 = args.fp16,
